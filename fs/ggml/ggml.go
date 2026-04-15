@@ -298,6 +298,7 @@ func (kv KV) OllamaEngineRequired() bool {
 		"glmocr",
 		"lfm2",
 		"lfm2moe",
+		"xlmr",
 	}, kv.Architecture())
 }
 
