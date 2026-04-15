@@ -20,6 +20,7 @@ type Model struct {
 	tokenizer.Tokenizer
 
 	TokenEmbedding     *nn.Embedding `gguf:"token_embd"`
+	TypeEmbedding      *nn.Embedding `gguf:"token_types"`
 	PositionEmbedding  *nn.Embedding `gguf:"position_embd"`
 	TokenEmbeddingNorm *nn.LayerNorm `gguf:"token_embd_norm"`
 
@@ -30,6 +31,11 @@ type Model struct {
 
 func (m *Model) Forward(ctx ml.Context, batch input.Batch) (ml.Tensor, error) {
 	hiddenStates := m.TokenEmbedding.Forward(ctx, batch.Inputs)
+
+	// Type embeddings (optional — some XLM-R models like e5-small have them)
+	if m.TypeEmbedding != nil {
+		hiddenStates = hiddenStates.Add(ctx, m.TypeEmbedding.Weight.Slice(ctx, 1, 0, 1, 1))
+	}
 
 	// XLM-R adds position offset (typically 2 for RoBERTa-style padding)
 	positions := make([]int32, len(batch.Positions))
@@ -104,7 +110,7 @@ type MLP struct {
 }
 
 func (m *MLP) Forward(ctx ml.Context, hiddenStates ml.Tensor, opts *Options) ml.Tensor {
-	return m.Down.Forward(ctx, m.Up.Forward(ctx, hiddenStates).GELU(ctx))
+	return m.Down.Forward(ctx, m.Up.Forward(ctx, hiddenStates).GELU_ERF(ctx))
 }
 
 type Options struct {

@@ -111,7 +111,7 @@ type MLP struct {
 }
 
 func (m *MLP) Forward(ctx ml.Context, hiddenStates ml.Tensor, opts *Options) ml.Tensor {
-	return m.Down.Forward(ctx, m.Up.Forward(ctx, hiddenStates).GELU(ctx))
+	return m.Down.Forward(ctx, m.Up.Forward(ctx, hiddenStates).GELU_ERF(ctx))
 }
 
 type Options struct {
@@ -158,6 +158,15 @@ func New(c fs.Config) (model.Model, error) {
 	switch c.String("tokenizer.ggml.model", "bert") {
 	case "bert":
 		t = tokenizer.NewWordPiece(vocab, true)
+	case "llama":
+		// SentencePiece Unigram (for BERT models with SP tokenizer, e.g. e5-small)
+		t = tokenizer.NewSentencePieceUnigram(vocab)
+	case "gpt2":
+		// BPE (for BERT models with BPE tokenizer)
+		t = tokenizer.NewBytePairEncoding(
+			vocab,
+			`(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+`,
+		)
 	default:
 		return nil, model.ErrUnsupportedTokenizer
 	}
