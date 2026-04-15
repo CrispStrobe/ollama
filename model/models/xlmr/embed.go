@@ -142,7 +142,8 @@ func New(c fs.Config) (model.Model, error) {
 	var t tokenizer.Tokenizer
 	switch c.String("tokenizer.ggml.model", "llama") {
 	case "llama":
-		t = tokenizer.NewSentencePiece(vocab)
+		// XLM-R uses SentencePiece Unigram — needs Viterbi DP, not BPE merge
+		t = tokenizer.NewSentencePieceUnigram(vocab)
 	case "bert":
 		t = tokenizer.NewWordPiece(vocab, false)
 	default:
